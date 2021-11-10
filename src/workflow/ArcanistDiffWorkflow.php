@@ -335,8 +335,11 @@ EOTEXT
           'hg' => pht('Mercurial does not support %s yet.', '--head'),
         ),
       ),
+      'no-rebase' => array(
+        'help'  => pht('Do not rebase to stable branch before creating diff.'),
+      ),
       'rebase' => array(
-        'help'  => pht('Rebase to stable before creating diff.'),
+        'help'  => pht('Rebase to stable branch before creating diff, default behavior.'),
       )
     );
 
@@ -348,13 +351,14 @@ EOTEXT
   }
 
   private function runRebaseToStable() {
-    // return if continue creating the diff, true or false
-    // Default not rebase before creating a diff, will switch to true after fully tested.
-    $do_rebase = false;
-    if ($this->getArgument('rebase')) {
-      $do_rebase = true;
+    # return if continue creating the diff, true or false
+    # Default to rebase before creating a diff
+    $do_rebase = true;
+    if ($this->getArgument('no-rebase')) {
+      $do_rebase = false;
     }
     if ($do_rebase) {
+      // exec('rm -fr ".git/rebase-merge"');
       echo "Running arc rebase... \n";
       $outputs = null;
       $retval = null;
@@ -368,7 +372,7 @@ EOTEXT
         $continue_diff = phutil_console_confirm($prompt, $default_no = true);
         if (!$continue_diff) {
           echo "Stop creating diff... \n";
-          echo "Please follow above console outputs to resolve all conflicts manually. \n";
+          echo "Please run 'arc rebase' and follow above console outputs to resolve all conflicts manually. \n";
           return false;
         }
         echo "Running git rebase --abort to skip rebase \n";
