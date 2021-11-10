@@ -851,6 +851,8 @@ abstract class ArcanistLandEngine
       $build_map[$revision_phid]['buildRefs'][] = $build_ref;
     }
 
+    $prompt_key = '';
+    $query = '';
     if ($has_failures) {
       if ($has_ongoing) {
         $message = pht(
@@ -922,10 +924,12 @@ abstract class ArcanistLandEngine
       throw new ArcanistRevisionStatusException($this->getWorkflow()->getBuildFailuresMessage());
     }
 
-    $this->getWorkflow()
-      ->getPrompt($prompt_key)
-      ->setQuery($query)
-      ->execute();
+    if ($prompt_key && $query) {
+      $this->getWorkflow()
+        ->getPrompt($prompt_key)
+        ->setQuery($query)
+        ->execute();
+    }
   }
 
   protected function confirmImplicitCommits(array $sets, array $symbols) {
