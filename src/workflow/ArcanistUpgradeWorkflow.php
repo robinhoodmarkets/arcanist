@@ -9,12 +9,12 @@ final class ArcanistUpgradeWorkflow
 
   public function getWorkflowInformation() {
     $help = pht(<<<EOTEXT
-Upgrade Arcanist to the latest version.
+Upgrade this program to the latest version.
 EOTEXT
 );
 
     return $this->newWorkflowInformation()
-      ->setSynopsis(pht('Upgrade Arcanist to the latest version.'))
+      ->setSynopsis(pht('Upgrade this program to the latest version.'))
       ->addExample(pht('**upgrade**'))
       ->setHelp($help);
   }

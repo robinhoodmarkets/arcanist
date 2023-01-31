@@ -237,7 +237,7 @@ abstract class ArcanistWorkflow extends Phobject {
 
     if ($information) {
       $synopsis = $information->getSynopsis();
-      if (strlen($synopsis)) {
+      if ($synopsis !== null) {
         $phutil_workflow->setSynopsis($synopsis);
       }
 
@@ -248,7 +248,7 @@ abstract class ArcanistWorkflow extends Phobject {
       }
 
       $help = $information->getHelp();
-      if (strlen($help)) {
+      if ($help !== null) {
         // Unwrap linebreaks in the help text so we don't get weird formatting.
         $help = preg_replace("/(?<=\S)\n(?=\S)/", ' ', $help);
 
@@ -628,7 +628,7 @@ abstract class ArcanistWorkflow extends Phobject {
         $conduit_uri = $this->conduitURI;
         $message = phutil_console_format(
           "\n%s\n\n    %s\n\n%s\n%s",
-          pht('YOU NEED TO __INSTALL A CERTIFICATE__ TO LOGIN TO PHABRICATOR'),
+          pht('YOU NEED TO __INSTALL A CERTIFICATE__ TO LOG IN'),
           pht('To do this, run: **%s**', 'arc install-certificate'),
           pht("The server '%s' rejected your request:", $conduit_uri),
           $ex->getMessage());
@@ -1659,7 +1659,7 @@ abstract class ArcanistWorkflow extends Phobject {
    * @return void
    */
   final protected function writeStatusMessage($msg) {
-    fwrite(STDERR, $msg);
+    PhutilSystem::writeStderr($msg);
   }
 
   final public function writeInfo($title, $message) {
@@ -2051,11 +2051,10 @@ abstract class ArcanistWorkflow extends Phobject {
     } catch (ConduitClientException $ex) {
       if ($ex->getErrorCode() == 'ERR-CONDUIT-CALL') {
         $reasons[] = pht(
-          'This version of Arcanist is more recent than the version of '.
-          'Phabricator you are connecting to: the Phabricator install is '.
-          'out of date and does not have support for identifying '.
-          'repositories by callsign or URI. Update Phabricator to enable '.
-          'these features.');
+          'This software version on the server you are connecting to is out '.
+          'of date and does not have support for identifying repositories '.
+          'by callsign or URI. Update the server sofwware to enable these '.
+          'features.');
         return array(null, $reasons);
       }
       throw $ex;
@@ -2298,9 +2297,8 @@ abstract class ArcanistWorkflow extends Phobject {
 
     throw new ArcanistUsageException(
       pht(
-        "Unable to find a browser command to run. Set '%s' in your ".
-        "Arcanist config to specify a command to use.",
-        'browser'));
+        'Unable to find a browser command to run. Set "browser" in your '.
+        'configuration to specify a command to use.'));
   }
 
 
