@@ -213,7 +213,8 @@ class ArcanistPhlqLandEngine extends ArcanistGitLandEngine {
         $timestamp_diff = $commit_unix_date - $diff_date_modified;
         # allow for small theshold before tripping the warning
         if ($timestamp_diff > 5) {
-          $pretty_diff = sprintf('%02dh %02dm %02ds', ($timestamp_diff/3600),($timestamp_diff/60%60), $timestamp_diff%60);
+          $pretty_diff = sprintf('%02dh %02dm %02ds',$timestamp_diff/3600,(int)($timestamp_diff/60) % 60, $timestamp_diff%60.0);
+
           echo tsprintf(
             "\n%!\n%W\n",
             pht('POTENTIAL UNPUSHED LOCAL CHANGES FOR D%s', $revision_id),

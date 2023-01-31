@@ -66,6 +66,11 @@ final class ArcanistDifferentialDependencyGraph extends AbstractDirectedGraph {
       $key = null;
     }
 
+    foreach ($hashes as $hash) {
+      if ($hash[0] == $key) {
+        return $hash[1];
+      }
+    }
     return idx($hashes, $key);
   }
 
