@@ -399,6 +399,8 @@ EOTEXT
   }
 
   public function run() {
+    $this->runSecscanPrePushScript();
+
     $arc_diff_ts = (int)(microtime(true)*1000);
 
     $this->console = PhutilConsole::getConsole();
@@ -1246,6 +1248,25 @@ EOTEXT
     }
 
     return true;
+  }
+
+  private function runSecscanPrePushScript() {
+    $root = phutil_get_library_root('arcanist');
+
+    $script_path = $root.'/../scripts/secscan_scan_pre_push.sh';
+    $script_path = Filesystem::resolvePath($script_path);
+
+    $future = new ExecFuture('sh %C', $script_path);
+    $future->setTimeout(10);
+    $future->resolve();
+    // return true;
+
+    // list($err, $stdout, $stderr) = $future->resolve();
+
+    // if ($err == 1) {
+    //   echo $stderr;
+    //   return false;
+    // }
   }
 
 
