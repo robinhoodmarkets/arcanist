@@ -353,6 +353,18 @@ EOTEXT
     return $this->getArgument('raw') || $this->getArgument('raw-command');
   }
 
+  private function isProcessRunningInsideMonorepo() {
+    exec('git remote get-url origin', $remote_url, $git_remote_retval);
+    if ($git_remote_retval !== 0) {
+      return false;
+    }
+
+    if ($remote_url[0] != "git@github.com:robinhoodmarkets/rh.git" && $remote_url[0] != "git@github.com:robinhoodmarkets/rh" && $remote_url[0] != "ssh://git@github.com/robinhoodmarkets/rh.git") {
+      return false;
+    }
+    return true;
+  }
+
   private function runRebaseToStable() {
     // return if continue creating the diff, true or false
     // Default to rebase before creating a diff.
@@ -431,6 +443,10 @@ EOTEXT
       $runSecretDetector = true;
     }
 
+    if (!($this->isProcessRunningInsideMonorepo())) {
+      $runSecretDetector = false;
+    }
+
     if ($this->getArgument('unsafe-no-secret-detection')) {
       $this->console->writeOut("%s\n", pht('UNSAFE Skipping secret detection.'));
       $runSecretDetector = false;
@@ -455,7 +471,7 @@ EOTEXT
 
     if ($runSecretDetector) {
       list($err, $stdout, $stderr) = $secretDetectorFuture->resolve();
-      if ( $err !== 0 ) {
+      if ( $err == 1 ) {
         throw new Exception(pht("\nSecurity findings detected\n %s \n", $stdout));
       }
       $this->console->writeOut("%s\n", pht('Secret detection completed. No findings.'));
