@@ -340,6 +340,9 @@ EOTEXT
       ),
       'no-rebase' => array(
         'help'  => pht('Do not rebase to stable before creating diff.'),
+      ),
+      'unsafe-no-secret-detection' => array(
+        'help' => pht('UNSAFE option to disable secret detection'),
       )
     );
 
@@ -423,12 +426,40 @@ EOTEXT
       $revision = $this->buildRevisionFromCommitMessage($commit_message);
     }
 
+    $runSecretDetector = false;
+    if (strtolower(getenv('ENABLE_SECRET_DETECTION_PROCESS')) == "true") {
+      $runSecretDetector = true;
+    }
+
+    if ($this->getArgument('unsafe-no-secret-detection')) {
+      $this->console->writeOut("%s\n", pht('UNSAFE Skipping secret detection.'));
+      $runSecretDetector = false;
+    }
+
+    if ($runSecretDetector) {
+      $this->console->writeOut("%s\n", pht('Running secret detection...'));
+      $root = phutil_get_library_root('arcanist');
+      $script_path = $root.'/../scripts/secscan_scan_pre_push.sh';
+      $script_path = Filesystem::resolvePath($script_path);
+      $secretDetectorFuture = new ExecFuture('sh %C', $script_path);
+      $secretDetectorFuture->setTimeout(8);
+      $secretDetectorFuture->start();
+    }
+
     $data = $this->runLintUnit();
 
     $lint_result = $data['lintResult'];
     $this->unresolvedLint = $data['unresolvedLint'];
     $unit_result = $data['unitResult'];
     $this->testResults = $data['testResults'];
+
+    if ($runSecretDetector) {
+      list($err, $stdout, $stderr) = $secretDetectorFuture->resolve();
+      if ( $err !== 0 ) {
+        throw new Exception(pht("\nSecurity findings detected\n %s \n", $stdout));
+      }
+      $this->console->writeOut("%s\n", pht('Secret detection completed. No findings.'));
+    }
 
     $changes = $this->generateChanges();
     if (!$changes) {
