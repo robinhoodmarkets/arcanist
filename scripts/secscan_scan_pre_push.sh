@@ -6,20 +6,16 @@ set +e
 
 REPO_PATH="$(git rev-parse --show-toplevel)"
 
-if [ ${ENABLE_SECRET_DETECTION_PROCESS:-} = "true" ]; then
-  BASE_COMMIT=$(
-    git log \
-      --oneline \
-      --committer="phlq" \
-      --pretty="format:%H" \
-      --max-count=50 \
-      | head -1
-  )
+BASE_COMMIT=$(
+  git log \
+    --oneline \
+    --committer="phlq" \
+    --pretty="format:%H" \
+    --max-count=50 \
+    | head -1
+)
 
-  bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //secscan/tools/trufflehog:scan_local -- "$REPO_PATH" "$BASE_COMMIT"
-else
-  bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //secscan -- scan -d "${REPO_PATH}" -s=pre-commit --timeout=8 --report-metrics=true --log-file="/tmp/secscan.log"
-fi
+bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //secscan/tools/trufflehog:scan_local -- "$REPO_PATH" "$BASE_COMMIT"
 
 EXIT_CODE=$?
 
