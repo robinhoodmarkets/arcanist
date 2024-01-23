@@ -88,6 +88,10 @@ abstract class ArcanistWorkflow extends Phobject {
   private $non_blocking_build_plan_phids;
   private $lint_build_plan_phids;
 
+  final public function getSpecifiedArguments() {
+    return $this->arguments;
+  }
+
   final public function setNotAcceptedMessage($message) {
     $this->not_accepted_message = $message;
     return $this;
@@ -338,7 +342,7 @@ abstract class ArcanistWorkflow extends Phobject {
     return $err;
   }
 
-  final public function getLogEngine() {
+  public function getLogEngine() {
     return $this->getRuntime()->getLogEngine();
   }
 

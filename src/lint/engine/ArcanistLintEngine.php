@@ -60,6 +60,8 @@ abstract class ArcanistLintEngine extends Phobject {
 
   private $linterResources = array();
 
+  private $metricsEventLogger;
+
   public function __construct() {}
 
   final public function setConfigurationManager(
@@ -153,6 +155,8 @@ abstract class ArcanistLintEngine extends Phobject {
   }
 
   final public function run() {
+    $this->metricsEventLogger = ArcanistMetricsLogger::getInstance();
+
     $linters = $this->buildLinters();
     if (!$linters) {
       throw new ArcanistNoEffectException(pht('No linters to run.'));
@@ -570,9 +574,31 @@ abstract class ArcanistLintEngine extends Phobject {
 
   private function executeLinterOnPaths(ArcanistLinter $linter, array $paths) {
     $call_id = $this->beginLintServiceCall($linter, $paths);
+    $willLintEventStartTs = (int)(microtime(true)*1000000);
 
     try {
       $linter->willLintPaths($paths);
+    } catch (Exception $ex) {
+      $this->endLintServiceCall($call_id);
+      $this->metricsEventLogger->logEvent(
+        array(
+          'event_name' => 'will lint',
+          'event_detail' => $linter->getLinterConfigurationName(),
+          'event_start_ts' => $willLintEventStartTs,
+          'event_end_ts' => (int)(microtime(true)*1000000),
+        ));
+      throw $ex;
+    }
+    $this->metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'will lint',
+        'event_detail' => $linter->getLinterConfigurationName(),
+        'event_start_ts' => $willLintEventStartTs,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));
+    $lintPathsEventStartTs = (int)(microtime(true)*100000);
+
+    try {
       foreach ($paths as $path) {
         $linter->setActivePath($path);
         $linter->lintPath($path);
@@ -582,23 +608,51 @@ abstract class ArcanistLintEngine extends Phobject {
       }
     } catch (Exception $ex) {
       $this->endLintServiceCall($call_id);
+      $this->metricsEventLogger->logEvent(
+        array(
+          'event_name' => 'lint paths',
+          'event_detail' => $linter->getLinterConfigurationName(),
+          'event_start_ts' => $lintPathsEventStartTs,
+          'event_end_ts' => (int)(microtime(true)*1000000),
+        ));
       throw $ex;
     }
 
     $this->endLintServiceCall($call_id);
-  }
+    $this->metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'lint paths',
+        'event_detail' => $linter->getLinterConfigurationName(),
+        'event_start_ts' => $lintPathsEventStartTs,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));  }
 
   private function executeDidLintOnPaths(ArcanistLinter $linter, array $paths) {
     $call_id = $this->beginLintServiceCall($linter, $paths);
+    $didLintEventStartTs = (int)(microtime(true)*1000000);
 
     try {
       $linter->didLintPaths($paths);
     } catch (Exception $ex) {
       $this->endLintServiceCall($call_id);
+      $this->metricsEventLogger->logEvent(
+        array(
+          'event_name' => 'did lint',
+          'event_detail' => $linter->getLinterConfigurationName(),
+          'event_start_ts' => $didLintEventStartTs,
+          'event_end_ts' => (int)(microtime(true)*1000000),
+        ));
       throw $ex;
     }
 
     $this->endLintServiceCall($call_id);
+    $this->metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'did lint',
+        'event_detail' => $linter->getLinterConfigurationName(),
+        'event_start_ts' => $didLintEventStartTs,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));
   }
 
   private function validateLintMessage(

@@ -146,6 +146,11 @@ EOTEXT
 
   public function run() {
     $console = PhutilConsole::getConsole();
+
+    $metricsEventLogger = ArcanistMetricsLogger::getInstance();
+
+    $lintEventStartTs = (int)(microtime(true)*1000000);
+
     $working_copy = $this->getWorkingCopyIdentity();
     $configuration_manager = $this->getConfigurationManager();
 
@@ -221,6 +226,7 @@ EOTEXT
       $failed = $ex;
     }
 
+    $lintResultEventStartTs = (int)(microtime(true)*1000000);
     $results = $engine->getResults();
 
     if ($this->getArgument('never-apply-patches')) {
@@ -356,7 +362,6 @@ EOTEXT
     $unresolved = array();
     $has_warnings = false;
     $has_errors = false;
-
     foreach ($results as $result) {
       foreach ($result->getMessages() as $message) {
         if (!$message->isPatchApplied()) {
@@ -382,6 +387,21 @@ EOTEXT
     }
 
     $renderer->renderResultCode($result_code);
+
+    $metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'lint results',
+        'event_detail' => 'process lint results',
+        'event_start_ts' => $lintResultEventStartTs,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));
+    $metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'lint workflow',
+        'event_detail' => 'overall lint workflow',
+        'event_start_ts' => $lintEventStartTs,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));
 
     return $result_code;
   }

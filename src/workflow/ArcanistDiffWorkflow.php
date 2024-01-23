@@ -11,6 +11,7 @@
 final class ArcanistDiffWorkflow extends ArcanistWorkflow {
 
   private $console;
+  private $metricsEventLogger;
   private $hasWarnedExternals = false;
   private $unresolvedLint;
   private $testResults;
@@ -423,9 +424,12 @@ EOTEXT
   }
 
   public function run() {
-    $arc_diff_ts = (int)(microtime(true)*1000);
+    $arc_diff_ts = (int)(microtime(true)*1000000);
 
     $this->console = PhutilConsole::getConsole();
+
+    $this->metricsEventLogger = ArcanistMetricsLogger::getInstance();
+    $this->metricsEventLogger->setAuthor($this->getUserName());
 
     $this->runRepositoryAPISetup();
     $this->runDiffSetupBasics();
@@ -435,8 +439,15 @@ EOTEXT
       return;
     }
 
+    $commitMessageEventStartTs = (int)(microtime(true)*1000000);
     $commit_message = $this->buildCommitMessage();
-
+    $this->metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'commit message',
+        'event_detail' => 'build commit message',
+        'event_start_ts' => $commitMessageEventStartTs,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));
     $this->dispatchEvent(
       ArcanistEventType::TYPE_DIFF_DIDBUILDMESSAGE,
       array(
@@ -462,9 +473,10 @@ EOTEXT
       $time_now = date('Y-m-d h:i:s');
       $this->console->writeOut("[%s] %s\n", pht($time_now), pht('Running secret detection...'));
       $root = phutil_get_library_root('arcanist');
+      $event_file = $this->metricsEventLogger->getLogFile();
       $script_path = $root.'/../scripts/secscan_scan_pre_push.sh';
       $script_path = Filesystem::resolvePath($script_path);
-      $secretDetectorFuture = new ExecFuture('sh %C', $script_path);
+      $secretDetectorFuture = new ExecFuture('sh %C %s', $script_path, $event_file);
       // temporary change to understand `bazel run` metrics of secret detection,
       // please remove this line after the experiment is done.
       $secretDetectorFuture->setTimeout(120);
@@ -505,6 +517,9 @@ EOTEXT
       $diff_spec);
 
     $this->diffID = $diff_info['diffid'];
+
+    $this->metricsEventLogger->setRevisionId('D'.$this->revisionID);
+    $this->metricsEventLogger->setDiffId("$this->diffID");
 
     $event = $this->dispatchEvent(
       ArcanistEventType::TYPE_DIFF_WASCREATED,
@@ -760,6 +775,43 @@ EOTEXT
 
     $this->removeScratchFile('create-message');
 
+    $this->metricsEventLogger->logEvent(
+      array(
+        'event_name' => 'arc diff',
+        'event_detail' => $this->getSpecifiedArguments(),
+        'event_start_ts' => $arc_diff_ts,
+        'event_end_ts' => (int)(microtime(true)*1000000),
+      ));
+
+    if ($this->getDevxMetricsEnabled()) {
+      try {
+        $ch = curl_init("https://devhooks.build.rhinternal.net/api/events/");
+        $runtime_payload = json_encode(array(
+          'event_type' => 'arc_sw_runtime',
+          'source' => 'arc',
+          'events' => $this->metricsEventLogger->getAllEvents(),
+        ));
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $runtime_payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $content = curl_exec($ch);
+        if (curl_errno($ch)) {
+          throw new ErrorException('Curl error: ' . curl_error($ch));
+        } else {
+          $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+          if (floor($http_code / 100) != 2) {
+            throw new ErrorException("Unexpected HTTP code: {$http_code}, {$content}");
+          }
+          echo "Arcanist runtime event sent to devhooks.\n";
+        }
+        curl_close($ch);
+      } catch (Exception $e) {
+        echo "Failed to send arc diff runtime events to devhooks. Exception caught: {$e->getMessage()}.";
+        echo " Please contact DevX team if the problem persists.\n";
+        curl_close($ch);
+      }
+    }
     return 0;
   }
 
@@ -1335,7 +1387,6 @@ EOTEXT
     }
 
     $repository_api = $this->getRepositoryAPI();
-
     $this->console->writeOut("%s\n", pht('Linting...'));
     try {
       $argv = $this->getPassthruArgumentsAsArgv('lint');
