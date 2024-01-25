@@ -476,7 +476,7 @@ EOTEXT
       $event_file = $this->metricsEventLogger->getLogFile();
       $script_path = $root.'/../scripts/secscan_scan_pre_push.sh';
       $script_path = Filesystem::resolvePath($script_path);
-      $secretDetectorFuture = new ExecFuture('sh %C %s', $script_path, $event_file);
+      $secretDetectorFuture = new ExecFuture('bash %C %s', $script_path, $event_file);
       // temporary change to understand `bazel run` metrics of secret detection,
       // please remove this line after the experiment is done.
       $secretDetectorFuture->setTimeout(120);

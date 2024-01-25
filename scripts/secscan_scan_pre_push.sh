@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 EVENT_FILE=$1
 
 START_TS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time * 1000000')
