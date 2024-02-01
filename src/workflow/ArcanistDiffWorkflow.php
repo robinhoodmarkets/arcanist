@@ -430,6 +430,10 @@ EOTEXT
 
     $this->metricsEventLogger = ArcanistMetricsLogger::getInstance();
     $this->metricsEventLogger->setAuthor($this->getUserName());
+    $this->metricsEventLogger->setNounit(!is_null($this->getArgument('nounit')));
+    $this->metricsEventLogger->setNolint(!is_null($this->getArgument('nolint')));
+    $this->metricsEventLogger->setNorebase(!is_null($this->getArgument('no-rebase')));
+    $this->metricsEventLogger->setAllowUntracked(!is_null($this->getArgument('allow-untracked')));
 
     $this->runRepositoryAPISetup();
     $this->runDiffSetupBasics();
@@ -778,7 +782,7 @@ EOTEXT
     $this->metricsEventLogger->logEvent(
       array(
         'event_name' => 'arc diff',
-        'event_detail' => $this->getSpecifiedArguments(),
+        'event_detail' => json_encode($this->getSpecifiedArguments()),
         'event_start_ts' => $arc_diff_ts,
         'event_end_ts' => (int)(microtime(true)*1000000),
       ));

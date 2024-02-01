@@ -9,6 +9,11 @@ final class ArcanistMetricsLogger extends Phobject {
   private $osType;
   private $cmdUuid;
 
+  private $nounit;
+  private $nolint;
+  private $noRebase;
+  private $allowUntracked;
+
   private $author;
   private $revisionID;
   private $diffID;
@@ -20,6 +25,10 @@ final class ArcanistMetricsLogger extends Phobject {
     $this->setRepositoryName(implode(",",$repository_name));
     $this->setOsType(strtolower(php_uname('s')));
     $this->setCmdUuid($this->generateUuid());
+    $this->setNounit(false);
+    $this->setNolint(false);
+    $this->setNorebase(false);
+    $this->setAllowUntracked(false);
   }
 
   public static function getInstance() {
@@ -45,6 +54,22 @@ final class ArcanistMetricsLogger extends Phobject {
     if (empty($this->cmdUuid)) {
       $this->cmdUuid = $cmdUuid;
     }
+  }
+
+  public function setNounit($nounit) {
+    $this->nounit = $nounit;
+  }
+
+  public function setNolint($nolint) {
+    $this->nolint = $nolint;
+  }
+
+  public function setNorebase($noRebase) {
+    $this->noRebase = $noRebase;
+  }
+
+  public function setAllowUntracked($allowUntracked) {
+    $this->allowUntracked = $allowUntracked;
   }
 
   public function setAuthor($author) {
@@ -84,6 +109,10 @@ final class ArcanistMetricsLogger extends Phobject {
       "cmd_uuid" => $this->cmdUuid,
       "revision_id" => $this->revisionID,
       "diff_id" => $this->diffID,
+      "nounit" => $this->nounit,
+      "nolint" => $this->nolint,
+      "no_rebase" => $this->noRebase,
+      "allow-untracked" => $this->allowUntracked,
     ];
 
     $events = array();
