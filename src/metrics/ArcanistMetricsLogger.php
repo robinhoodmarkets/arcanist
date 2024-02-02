@@ -112,7 +112,7 @@ final class ArcanistMetricsLogger extends Phobject {
       "nounit" => $this->nounit,
       "nolint" => $this->nolint,
       "no_rebase" => $this->noRebase,
-      "allow-untracked" => $this->allowUntracked,
+      "allow_untracked" => $this->allowUntracked,
     ];
 
     $events = array();

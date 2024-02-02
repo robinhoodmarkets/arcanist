@@ -789,7 +789,7 @@ EOTEXT
 
     if ($this->getDevxMetricsEnabled()) {
       try {
-        $ch = curl_init("https://devhooks.build.rhinternal.net/api/events/");
+        $ch = curl_init("https://devhooks.build.rhinternal.net/api/events_protobuf/");
         $runtime_payload = json_encode(array(
           'event_type' => 'arc_sw_runtime',
           'source' => 'arc',
@@ -797,7 +797,10 @@ EOTEXT
         ));
 
         curl_setopt($ch, CURLOPT_POSTFIELDS, $runtime_payload);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+          'Content-Type: application/json',
+          'Event-Serialization: proto_json')
+        );
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $content = curl_exec($ch);
         if (curl_errno($ch)) {
