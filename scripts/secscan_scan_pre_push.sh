@@ -8,8 +8,10 @@ START_TS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time * 1000000')
 
 set +e
 
+REPO_PATH="$(git rev-parse --show-toplevel)"
+
 # run secscan cache target
-bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //secscan/scripts:secscan_cache
+bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //secscan/scripts:secscan_cache -- "$REPO_PATH"
 
 EXIT_CODE=$?
 
