@@ -31,6 +31,7 @@ final class ArcanistDiffWorkflow extends ArcanistWorkflow {
   const STAGING_REPOSITORY_UNSUPPORTED = 'repository.unsupported';
   const STAGING_REPOSITORY_UNCONFIGURED = 'repository.unconfigured';
   const STAGING_CLIENT_UNSUPPORTED = 'client.unsupported';
+  const DEVHOOKS_LIMIT = 100;
 
   public function getWorkflowName() {
     return 'diff';
@@ -787,38 +788,48 @@ EOTEXT
         'event_end_ts' => (int)(microtime(true)*1000000),
       ));
 
-    if ($this->getDevxMetricsEnabled()) {
-      try {
-        $ch = curl_init("https://devhooks.build.rhinternal.net/api/events_protobuf/");
-        $runtime_payload = json_encode(array(
-          'event_type' => 'arc_sw_runtime',
-          'source' => 'arc',
-          'events' => $this->metricsEventLogger->getAllEvents(),
-        ));
-
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $runtime_payload);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-          'Content-Type: application/json',
-          'Event-Serialization: proto_json')
-        );
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $content = curl_exec($ch);
-        if (curl_errno($ch)) {
-          throw new ErrorException('Curl error: ' . curl_error($ch));
-        } else {
-          $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-          if (floor($http_code / 100) != 2) {
-            throw new ErrorException("Unexpected HTTP code: {$http_code}, {$content}");
+      if ($this->getDevxMetricsEnabled()) {
+        try {
+          $ch = curl_init("https://devhooks.build.rhinternal.net/api/events_protobuf/");
+          curl_setopt(
+            $ch,
+            CURLOPT_HTTPHEADER,
+            array(
+              'Content-Type: application/json',
+              'Event-Serialization: proto_json'
+            )
+          );
+          curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  
+          $event_chunks = array_chunk($this->metricsEventLogger->getAllEvents(), self::DEVHOOKS_LIMIT);
+          foreach ($event_chunks as $chunk) {
+            // iterate through each item in the chunk
+            $runtime_payload = json_encode(
+              array(
+                "event_type" => "arc_sw_runtime",
+                'source' => 'arc',
+                "events" => $chunk
+              )
+            );
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $runtime_payload);
+            $content = curl_exec($ch);
+            if (curl_errno($ch)) {
+              throw new ErrorException('Curl error: ' . curl_error($ch));
+            } else {
+              $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+              if (floor($http_code / 100) != 2) {
+                throw new ErrorException("Unexpected HTTP code: {$http_code}, {$content}");
+              }
+            }
           }
           echo "Arcanist runtime event sent to devhooks.\n";
+          curl_close($ch);
+        } catch (Exception $e) {
+          echo "Failed to send arc diff runtime events to devhooks. Exception caught: {$e->getMessage()}.";
+          echo " Please contact DevX team if the problem persists.\n";
+          curl_close($ch);
         }
-        curl_close($ch);
-      } catch (Exception $e) {
-        echo "Failed to send arc diff runtime events to devhooks. Exception caught: {$e->getMessage()}.";
-        echo " Please contact DevX team if the problem persists.\n";
-        curl_close($ch);
       }
-    }
     return 0;
   }
 
