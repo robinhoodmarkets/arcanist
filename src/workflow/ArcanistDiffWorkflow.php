@@ -790,20 +790,24 @@ EOTEXT
 
       if ($this->getDevxMetricsEnabled()) {
         try {
-          $ch = curl_init("https://devhooks.build.rhinternal.net/api/events_protobuf/");
-          curl_setopt(
-            $ch,
-            CURLOPT_HTTPHEADER,
-            array(
-              'Content-Type: application/json',
-              'Event-Serialization: proto_json'
-            )
-          );
-          curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  
+
+          $mh = curl_multi_init();
+          $chandles = array();
           $event_chunks = array_chunk($this->metricsEventLogger->getAllEvents(), self::DEVHOOKS_LIMIT);
-          foreach ($event_chunks as $chunk) {
-            // iterate through each item in the chunk
+
+          // add handles for each chunk
+          foreach ($event_chunks as $i => $chunk) {
+            $chandles[$i] = curl_init("https://devhooks.build.rhinternal.net/api/events_protobuf/");
+            curl_setopt(
+              $chandles[$i],
+              CURLOPT_HTTPHEADER,
+              array(
+                'Content-Type: application/json',
+                'Event-Serialization: proto_json'
+              )
+            );
+            curl_setopt($chandles[$i], CURLOPT_RETURNTRANSFER, true);
+            // iterate through each chunk
             $runtime_payload = json_encode(
               array(
                 "event_type" => "arc_sw_runtime",
@@ -811,23 +815,35 @@ EOTEXT
                 "events" => $chunk
               )
             );
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $runtime_payload);
-            $content = curl_exec($ch);
-            if (curl_errno($ch)) {
-              throw new ErrorException('Curl error: ' . curl_error($ch));
-            } else {
-              $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-              if (floor($http_code / 100) != 2) {
-                throw new ErrorException("Unexpected HTTP code: {$http_code}, {$content}");
-              }
-            }
+            curl_setopt($chandles[$i], CURLOPT_POSTFIELDS, $runtime_payload);
+            curl_multi_add_handle($mh, $chandles[$i]);
           }
+
+          //execute the multi handle
+          do {
+            $status = curl_multi_exec($mh, $active);
+            if ($active) {
+                // Wait for activity on curl_multi connections, with a timeout of 15 seconds
+                curl_multi_select($mh, 15.0);
+            }
+          } while ($active && $status == CURLM_OK);
+
+          // Check for any errors
+          if ($status != CURLM_OK) {
+            throw new ErrorException("Unexpected HTTP status: {$status} from devhooks request");
+          }
+
+          //close the handles
+          foreach($chandles as $ch) {
+            curl_multi_remove_handle($mh, $ch);
+          }
+          curl_multi_close($mh);
+
           echo "Arcanist runtime event sent to devhooks.\n";
-          curl_close($ch);
         } catch (Exception $e) {
           echo "Failed to send arc diff runtime events to devhooks. Exception caught: {$e->getMessage()}.";
           echo " Please contact DevX team if the problem persists.\n";
-          curl_close($ch);
+          curl_multi_close($mh);
         }
       }
     return 0;
