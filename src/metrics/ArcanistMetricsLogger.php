@@ -21,7 +21,7 @@ final class ArcanistMetricsLogger extends Phobject {
   private function __construct() {
     $this->eventFile = new TempFile();
     $repository_name;
-    exec('basename `git rev-parse --show-toplevel`', $repository_name);
+    exec('basename -s .git `git config --get remote.origin.url`', $repository_name);
     $this->setRepositoryName(implode(",",$repository_name));
     $this->setOsType(strtolower(php_uname('s')));
     $this->setCmdUuid($this->generateUuid());
@@ -79,7 +79,7 @@ final class ArcanistMetricsLogger extends Phobject {
   }
 
   public function setRevisionID($revisionID) {
-    if (empty($this->revisionID)) {
+    if (empty($this->revisionID) AND $revisionID != 'D') {
       $this->revisionID = $revisionID;
     }
   }
