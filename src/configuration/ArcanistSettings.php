@@ -129,6 +129,14 @@ final class ArcanistSettings extends Phobject {
         'help' => pht(
           'Configured command aliases. Use "arc alias" to define aliases.'),
       ),
+      'devx.metrics' => array(
+        'type' => 'bool',
+        'help' => pht(
+          'If true, will emit branch info and arc diff runtime metrics to '.
+          'devhooks. Defaults to true.'),
+        'default' => true,
+        'example' => 'false',
+      ),
     );
 
     $settings = ArcanistSetting::getAllSettings();
