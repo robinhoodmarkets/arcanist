@@ -11,7 +11,7 @@ set +e
 REPO_PATH="$(git rev-parse --show-toplevel)"
 
 # run secscan cache target
-bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress //secscan/scripts:secscan_cache -- "$REPO_PATH"
+"$REPO_PATH/secscan/scripts/secscan_cache.sh" "$REPO_PATH"
 
 EXIT_CODE=$?
 
