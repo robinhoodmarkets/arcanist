@@ -504,13 +504,14 @@ EOTEXT
     if ($runSecretDetector) {
       list($err, $stdout, $stderr) = $secretDetectorFuture->resolve();
       $time_now = date('Y-m-d h:i:s');
+      $secscan_execution_time = file_get_contents('/tmp/.secscan_execution_time');
       
       // Handle finding from secret detection
       if ( $err == 1 ) {
         $this->console->writeOut(
           "<bg:red>** SECSCAN **</bg> [%s] %s\n",
           pht($time_now),
-          pht('Security findings detected.')
+          pht('Secret detection completed in %s seconds. Security findings detected.', $secscan_execution_time)
         );
         throw new Exception(pht("\n%s\n", $stdout));
       }
@@ -519,7 +520,7 @@ EOTEXT
       $this->console->writeOut(
         "<bg:green>** SECSCAN **</bg> [%s] %s\n",
         pht($time_now),
-        pht('Secret detection completed. No findings.')
+        pht('Secret detection completed in %s seconds. No findings.', $secscan_execution_time)
       );
     }
 
