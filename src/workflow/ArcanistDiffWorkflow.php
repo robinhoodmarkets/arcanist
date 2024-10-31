@@ -504,7 +504,11 @@ EOTEXT
     if ($runSecretDetector) {
       list($err, $stdout, $stderr) = $secretDetectorFuture->resolve();
       $time_now = date('Y-m-d h:i:s');
-      $secscan_execution_time = file_get_contents('/tmp/.secscan_execution_time');
+      
+      // Attempt to get the scan execution time, or set a default if the file is missing
+      $secscan_execution_time = file_exists('/tmp/.secscan_execution_time') 
+          ? file_get_contents('/tmp/.secscan_execution_time') 
+          : 'unknown';
       
       // Handle finding from secret detection
       if ( $err == 1 ) {
