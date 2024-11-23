@@ -392,6 +392,7 @@ EOTEXT
     }
     $compatible_repos = array(
       "git@github.com:robinhoodmarkets/rh.git", "git@github.com:robinhoodmarkets/rh", "ssh://git@github.com/robinhoodmarkets/rh.git", "https://github.com/robinhoodmarkets/rh.git", // Monorepo
+      "git@github.com:robinhoodmarkets/rh-staging.git", "git@github.com:robinhoodmarkets/rh-staging", "ssh://git@github.com/robinhoodmarkets/rh-staging.git", "https://github.com/robinhoodmarkets/rh-staging.git", // Monorepo (staging)
       "git@github.com:robinhoodmarkets/robinhood-trader-ios.git", "git@github.com:robinhoodmarkets/robinhood-trader-ios", "ssh://git@github.com/robinhoodmarkets/robinhood-trader-ios.git", // iOS
       "git@github.com:robinhoodmarkets/robinhood-trader-android.git", "git@github.com:robinhoodmarkets/robinhood-trader-android", "ssh://git@github.com/robinhoodmarkets/robinhood-trader-android.git", // Android
     );
@@ -504,12 +505,12 @@ EOTEXT
     if ($runSecretDetector) {
       list($err, $stdout, $stderr) = $secretDetectorFuture->resolve();
       $time_now = date('Y-m-d h:i:s');
-      
+
       // Attempt to get the scan execution time, or set a default if the file is missing
-      $secscan_execution_time = file_exists('/tmp/.secscan_execution_time') 
-          ? file_get_contents('/tmp/.secscan_execution_time') 
+      $secscan_execution_time = file_exists('/tmp/.secscan_execution_time')
+          ? file_get_contents('/tmp/.secscan_execution_time')
           : 'unknown';
-      
+
       // Handle finding from secret detection
       if ( $err == 1 ) {
         $this->console->writeOut(
