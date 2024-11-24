@@ -363,6 +363,7 @@ EOTEXT
 
     $compatible_monorepo_origins = array(
       "git@github.com:robinhoodmarkets/rh.git", "git@github.com:robinhoodmarkets/rh", "ssh://git@github.com/robinhoodmarkets/rh.git", "https://github.com/robinhoodmarkets/rh.git", // Monorepo
+      "git@github.com:robinhoodmarkets/rh-staging.git", "git@github.com:robinhoodmarkets/rh-staging", "ssh://git@github.com/robinhoodmarkets/rh-staging.git", "https://github.com/robinhoodmarkets/rh-staging.git", // Monorepo
     );
     if (!in_array($remote_url[0], $compatible_monorepo_origins)) {
       return false;
