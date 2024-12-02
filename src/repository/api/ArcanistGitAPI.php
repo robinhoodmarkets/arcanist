@@ -21,7 +21,8 @@ final class ArcanistGitAPI extends ArcanistRepositoryAPI {
     $argv[0] = 'git '.$argv[0];
 
     return newv('ExecFuture', $argv)
-      ->setCWD($this->getPath());
+      ->setCWD($this->getPath())
+      ->setEnv(array('RH_SKIP_ALL_GIT_HOOKS' => '1'));
   }
 
   public function newPassthru($pattern /* , ... */) {
@@ -43,7 +44,8 @@ final class ArcanistGitAPI extends ArcanistRepositoryAPI {
     $args[0] = $git.' '.$args[0];
 
     return newv('PhutilExecPassthru', $args)
-      ->setCWD($this->getPath());
+      ->setCWD($this->getPath())
+      ->setEnv(array('RH_SKIP_ALL_GIT_HOOKS' => '1'));
   }
 
   public function getSourceControlSystemName() {
